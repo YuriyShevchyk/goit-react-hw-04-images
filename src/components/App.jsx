@@ -1,4 +1,4 @@
-import React, {Component} from 'react';
+import React, {useState, useEffect} from 'react';
 import * as API from '../API/Api'
 import {Searchbar} from './Searchbar/Searchbar';
 import ImageGallery from './ImageGallery/ImageGallery';
@@ -9,89 +9,74 @@ import {Container} from './App.styled'
 
 
 
-export default class App extends Component {
-  state = {
-    page: 1,
-    query: '',
-    items: [],
-    largeImageURL: '',
-    isLoading: false,
-    error: null,
-    totalPages: 0,
-  }
+export default function App() {
+  const [page, setPage] = useState(1);
+  const [query, setQuery] = useState('');
+  const [items, setItems] = useState([]);
+  const [largeImageURL, setLargeImageURL] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [totalPages, setTotalPages] = useState(0);
 
-loadImages = async (query, page) => {
-  this.setState({isLoading: true});
+  useEffect(() => {
+    if (!query) {
+      return;
+    }
 
-  try {
-    const data = await API.fetchImages(query, page);
-    this.setState(prevState => ({
-      items: [...prevState.items, ...data.hits],
-      totalPages: data.totalHits,
-    }));
-  } catch (error) {
-    this.setState({error});
-  } finally {
-    this.setState({isLoading: false});
+    const loadImages = async (query, page) => {
+      setIsLoading(true);
 
-    window.scrollTo({
-      top: document.documentElement.scrollHeight,
-      behavior: 'smooth',
-    });
-  }
-};
+      try {
+        const data = await API.fetchImages(query, page);
 
-componentDidUpdate (prevProps, prevState) {
-  const {query, page} = this.state;
-  if(prevState.query !== query || prevState.page !== page) {
-    this.loadImages(query, page);
-  }
-}
+        setItems(prevState => [...prevState, ...data.hits]);
+        setTotalPages(data.totalHits);
+      } catch (error) {
+        setError({ error });
+      } finally {
+        setIsLoading(false);
 
-handleSearchSubmit = query => {
-  this.setState({
-    query,
-    items: [],
-    page: 1,
-    totalPages: 0,
-  });
-};
+        window.scrollTo({
+          top: document.documentElement.scrollHeight,
+          behavior: 'smooth',
+        });
+      }
+    };
 
-onLoadMore = () => {
-  this.setState(prevState => ({
-    page: prevState.page + 1,
-  }));
-};
+    loadImages(query, page);
+  }, [query, page]);
 
-onOpenModal = largeImageURL => {
-  this.setState({ largeImageURL });
-};
+  const handleSearchSubmit = query => {
+    setQuery(query);
+    setItems([]);
+    setPage(1);
+    setTotalPages(0);
+  };
 
-onCloseModal = () => {
-  this.setState({ largeImageURL: '' });
-};
+  const onLoadMore = () => {
+    setPage(prevState => prevState + 1);
+  };
 
- render() {
-  const { items, isLoading, largeImageURL, error, page, totalPages } =
-    this.state;
+  const onOpenModal = largeImageURL => {
+    setLargeImageURL(largeImageURL);
+  };
+
+  const onCloseModal = () => {
+    setLargeImageURL('');
+  };
+
   return (
-     <Container>
-      <Searchbar onSearch={this.handleSearchSubmit} />
+    <Container>
+      <Searchbar onSearch={handleSearchSubmit} />
       {error && <p>Whoops, something went wrong: {error.message}</p>}
 
-      {items.length > 0 && (
-        <ImageGallery items={items} onClick={this.onOpenModal} />
-      )}
+      {items.length > 0 && <ImageGallery items={items} onClick={onOpenModal} />}
       {isLoading && <Loader />}
 
-      {page < Math.ceil(totalPages / 12) && (
-        <Button onLoadMore={this.onLoadMore} />
-      )}
+      {page < Math.ceil(totalPages / 12) && <Button onLoadMore={onLoadMore} />}
       {largeImageURL && (
-        <Modal onClose={this.onCloseModal} largeImageURL={largeImageURL} />
+        <Modal onClose={onCloseModal} largeImageURL={largeImageURL} />
       )}
-     </Container>
+    </Container>
   );
- }
 }
-
