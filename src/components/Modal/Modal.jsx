@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Overlay, ModalWrapp } from './Modal.styled';
 
-const modalRoot = document.getElementById('modal-root')
+const modalRoot = document.getElementById('modal-root');
 
 export default function Modal({ largeImageURL, onClose}) {
   const handleBackdropClick = event => {
